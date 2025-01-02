@@ -1,0 +1,95 @@
+{% extends "base.html" %} {% block title %}Home{% endblock %}
+
+{% block content %}
+<h1 align="center">Posts</h1>
+<ul class="list-group list-group-flush" id="postings">
+    {% for posting, user_first_name in postings %}
+        <li class="list-group-item" style="
+                justify-content: center;
+                display: flex;
+                flex-direction: column;
+                width: 100%;
+                align-items: center;
+            ">
+            
+            {% if posting.image %}
+                <img src="{{ url_for('views.display_image', posting_id=posting.id) }}" alt="Post Image" style="width: 200px; height: auto;">
+            {% endif %}
+
+            {{ posting.data }} <span style="font-size:10px;">from {{ user_first_name }}</span>
+
+            
+
+            {% if (posting.user_id == user.id) or (current_user.email == 'admin123@test.com') %}
+            <button type="button" class="close" onClick="deletePosting({{ posting.id }})" style="position: absolute;right: 0px;top: 5px;">
+                <span aria-hidden="true">&times;</span>
+            </button>
+            {% endif %}
+            
+        </li>
+        <ul>
+            {% for comment in posting.comments %} 
+                <li style="position:relative;">
+                    <span>{{ comment.data }}</span>
+                    <span style="font-size:10px;">on {{ comment.date }}</span>
+                    {% if (comment.user_id == current_user.id) or (current_user.email == 'admin123@test.com') %}
+                    <span style="cursor: pointer;padding-left: 20px;" onClick="deleteComment({{ comment.id }})" aria-hidden="true">&times;</span>
+                        <button type="button" class="close"  style="position: absolute;right: 0px;top: 0px;">
+                            
+                        </button>
+                    {% endif %}
+
+
+                </li>
+            {% endfor %}
+        </ul>
+
+        <div style="padding-bottom: 40px;">
+            <form method="POST">
+                <div class="form-group" style="display: flex;">
+                    <!--<label for="comment">Comment</label>-->
+                    <input 
+                        type="text" 
+                        name="posting_id" 
+                        value="{{ posting.id }}"
+                        style="display: none;"
+                    />
+                    <input 
+                        type="text" 
+                        name="user_id" 
+                        value="{{ current_user.id }}"
+                        style="display: none;"
+                    />
+                    <input 
+                        type="text" 
+                        name="comment" 
+                        class="form-control"
+                        placeholder="Dapat suatu yang bermanfaat? Sila komenn"
+                    />
+                    <button type="submit" class="btn btn-primary">
+                        Add
+                    </button>
+                </div>
+            </form>
+        </div>
+    
+    {% endfor %}
+</ul>
+<div style="background-color: azure;border: 1px solid black;border-radius: 20px;padding: 30px;">
+    <form method="POST" enctype="multipart/form-data">
+        <h2 align="center">Add your post!!</h2>
+        <textarea name="posting" id="posting" class="form-control"></textarea>
+        <br />
+        <input type="file" name="image" accept="image/*" />
+        <br />
+        <div align="center">
+            <button type="submit" class="btn btn-primary">Add</button>
+        </div>
+
+    </form>
+</div>
+<br/>
+<br/>
+<br/>
+<br/>
+{% endblock %}
