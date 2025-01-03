@@ -18,3 +18,7 @@ function deleteComment(commentId) {
         window.location.href = '/';
     })
 }
+
+$(document).ready(function(){
+    $('[data-toggle="tooltip"]').tooltip();
+});

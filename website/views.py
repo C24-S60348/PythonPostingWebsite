@@ -5,6 +5,7 @@ from . import db
 from werkzeug.utils import secure_filename
 import json, os
 from sqlalchemy.orm import joinedload
+from sqlalchemy.sql import func
 
 views = Blueprint('views', __name__)
 
@@ -16,37 +17,81 @@ ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 @login_required
 def home():
     if request.method == 'POST':
-        posting = request.form.get('posting')
-        image = request.files.get('image')
-        comment = request.form.get('comment')
-        posting_id = request.form.get('posting_id')
+        post_type = request.form.get('post_type')
         user_id = request.form.get('user_id')
 
-        if comment :
-            if len(comment) < 1 :
-                flash('Your comment is too short!', category='error')
-            else :
-                new_comment = Comment(data=comment, posting_id=posting_id, user_id=user_id)
-                print(new_comment)
-                db.session.add(new_comment)
-                db.session.commit()
-                flash('Comment added!', category='success')
-        elif len(posting) < 1 :
-            flash('Your post is too short!', category='error')
-        elif image and image.filename:
-            try:
-                image_data = image.read()
-                new_posting = Posting(data=posting, user_id=current_user.id, image=image_data)
+        posting = request.form.get('posting')
+        posting_id = request.form.get('posting_id')
+        image = request.files.get('image')
+        comment = request.form.get('comment')
+        comment_id = request.form.get('comment_id')
+        
+
+        if post_type == 'addpost':
+            if len(posting) < 1 :
+                flash('Your post is too short!', category='error')
+            elif image and image.filename:
+                try:
+                    image_data = image.read()
+                    new_posting = Posting(data=posting, user_id=current_user.id, image=image_data)
+                    db.session.add(new_posting)
+                    db.session.commit()
+                    flash('Post added!', category='success')
+                except Exception as e:
+                    flash(f'Error uploading image: {e}', category='error')
+            else:
+                new_posting = Posting(data=posting, user_id=current_user.id)
                 db.session.add(new_posting)
                 db.session.commit()
                 flash('Post added!', category='success')
-            except Exception as e:
-                flash(f'Error uploading image: {e}', category='error')
-        else:
-            new_posting = Posting(data=posting, user_id=current_user.id)
-            db.session.add(new_posting)
-            db.session.commit()
-            flash('Post added!', category='success')
+
+        elif post_type == 'editpost':
+            if len(posting) < 1 :
+                flash('Your post is too short!', category='error')
+            elif image and image.filename:
+                try:
+                    image_data = image.read()
+                    posting_to_update = Posting.query.get(posting_id)
+                    posting_to_update.image = image_data
+                    posting_to_update.data = posting
+                    posting_to_update.date = func.now()
+                    posting_to_update.edited = 1
+                    db.session.commit()
+                    flash('Post added!', category='success')
+                except Exception as e:
+                    flash(f'Error uploading image: {e}', category='error')
+            else:
+                posting_to_update = Posting.query.get(posting_id)
+                posting_to_update.data = posting
+                posting_to_update.date = func.now()
+                posting_to_update.edited = 1
+                db.session.commit()
+                flash('Post added!', category='success')
+
+        elif post_type == 'addcomment':
+            if comment :
+                if len(comment) < 1 :
+                    flash('Your comment is too short!', category='error')
+                else :
+                    new_comment = Comment(data=comment, posting_id=posting_id, user_id=user_id)
+                    db.session.add(new_comment)
+                    db.session.commit()
+                    flash('Comment added!', category='success')
+
+        elif post_type == 'editcomment':
+            if comment :
+                if len(comment) < 1 :
+                    flash('Your comment is too short!', category='error')
+                else :
+                    comment_to_update = Comment.query.get(comment_id)
+                    comment_to_update.data = comment
+                    comment_to_update.date = func.now()
+                    comment_to_update.edited = 1
+                    db.session.commit()
+                    flash('Comment added!', category='success')
+        
+        
+        
 
     #all_postings = Posting.query.join(User).all()
     #print(all_postings)

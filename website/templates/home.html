@@ -12,41 +12,92 @@
                 align-items: center;
             ">
             
-            {% if posting.image %}
-                <img src="{{ url_for('views.display_image', posting_id=posting.id) }}" alt="Post Image" style="width: 200px; height: auto;">
-            {% endif %}
+            <div style="text-align: center;" data-toggle="tooltip" 
+            title="
+                {% if posting.edited == 1 %}
+                    edited 
+                {% else %}
+                    uploaded
+                {% endif %}
+                on {{ posting.date }}
+            ">
+                {% if posting.image %}
+                    <img src="{{ url_for('views.display_image', posting_id=posting.id) }}" alt="Post Image" style="width: 200px; height: auto;">
+                {% endif %}
 
-            {{ posting.data }} <span style="font-size:10px;">from {{ user_first_name }}</span>
+                <div>{{ posting.data }} </div>
+            </div>
+            <span style="font-size:10px;">from {{ user_first_name }}</span>
+            <!--<span style="font-size:10px;">on {{ posting.date }}</span>-->
 
             
 
             {% if (posting.user_id == user.id) or (current_user.email == 'admin123@test.com') %}
-            <button type="button" class="close" onClick="deletePosting({{ posting.id }})" style="position: absolute;right: 0px;top: 5px;">
-                <span aria-hidden="true">&times;</span>
-            </button>
+                <button 
+                    type="button" 
+                    class="close" 
+                    style="position: absolute;right: 0px;top: 5px;"
+                    data-toggle="modal" 
+                    data-target="#deletePostModal{{ posting.id }}"
+                >
+                    <span aria-hidden="true">&times;</span>
+                </button>
+                <button 
+                    type="button" 
+                    class="close" 
+                    style="position: absolute;right: 25px;top: 7px;"
+                    data-toggle="modal" 
+                    data-target="#editPostModal{{ posting.id }}"
+                >
+                    <span aria-hidden="true">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M10.8984 1.29688C11.582 0.613281 12.7031 0.613281 13.3867 1.29688L14.4531 2.36328C15.1367 3.04688 15.1367 4.16797 14.4531 4.85156L13.1406 6.16406L9.58594 2.60938L10.8984 1.29688ZM12.5117 6.79297L6.14062 13.1641C5.86719 13.4375 5.51172 13.6562 5.12891 13.7656L1.82031 14.7227C1.60156 14.8047 1.35547 14.75 1.19141 14.5586C1 14.3945 0.945312 14.1484 1 13.9297L1.98438 10.6211C2.09375 10.2383 2.3125 9.88281 2.58594 9.60938L8.95703 3.23828L12.5117 6.79297Z" fill="black"/>
+                        </svg>
+                    </span>
+                </button>
             {% endif %}
             
         </li>
         <ul>
-            {% for comment in posting.comments %} 
+            {% for comment in posting.comments|sort(attribute='id') %}
                 <li style="position:relative;">
                     <span>{{ comment.data }}</span>
-                    <span style="font-size:10px;">on {{ comment.date }}</span>
+                    <span style="font-size:10px;">
+                        {% if comment.edited == 1 %}
+                            edited 
+                        {% endif %}
+                        on {{ comment.date }}
+                    </span>
                     {% if (comment.user_id == current_user.id) or (current_user.email == 'admin123@test.com') %}
-                    <span style="cursor: pointer;padding-left: 20px;" onClick="deleteComment({{ comment.id }})" aria-hidden="true">&times;</span>
-                        <button type="button" class="close"  style="position: absolute;right: 0px;top: 0px;">
-                            
-                        </button>
+                        <span style="cursor: pointer;padding-left: 5px;padding-right: 5px;margin-left:15px;" 
+                                aria-hidden="true"
+                                data-toggle="modal" 
+                                data-target="#deleteCommentModal{{ comment.id }}">
+                            &times;
+                        </span>
+                        <span style="cursor: pointer;padding-left: 5px;padding-right: 5px;" 
+                                data-toggle="modal" 
+                                data-target="#editCommentModal{{ comment.id }}" 
+                                aria-hidden="true">
+                            <svg width="8" height="8" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M10.8984 1.29688C11.582 0.613281 12.7031 0.613281 13.3867 1.29688L14.4531 2.36328C15.1367 3.04688 15.1367 4.16797 14.4531 4.85156L13.1406 6.16406L9.58594 2.60938L10.8984 1.29688ZM12.5117 6.79297L6.14062 13.1641C5.86719 13.4375 5.51172 13.6562 5.12891 13.7656L1.82031 14.7227C1.60156 14.8047 1.35547 14.75 1.19141 14.5586C1 14.3945 0.945312 14.1484 1 13.9297L1.98438 10.6211C2.09375 10.2383 2.3125 9.88281 2.58594 9.60938L8.95703 3.23828L12.5117 6.79297Z" fill="black"/>
+                            </svg>
+                        </span>
+                        
                     {% endif %}
 
 
                 </li>
             {% endfor %}
         </ul>
+        
+       
+        
 
         <div style="padding-bottom: 40px;">
             <form method="POST">
                 <div class="form-group" style="display: flex;">
+                    <input type="text" name="post_type" value="addcomment" style="display: none;"/>
                     <!--<label for="comment">Comment</label>-->
                     <input 
                         type="text" 
@@ -72,11 +123,120 @@
                 </div>
             </form>
         </div>
+
+        <!-- Modal for comments - start -->
+        {% for comment in posting.comments %} 
+            {% if (comment.user_id == current_user.id) or (current_user.email == 'admin123@test.com') %}
+                <!-- Modal delete comment - start -->
+                <div class="modal fade" id="deleteCommentModal{{ comment.id }}" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+                    <div class="modal-dialog" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                        <h5 class="modal-title" id="exampleModalLabel">Confirmation</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                        </div>
+                        <div class="modal-body">
+                            Are you sure want to delete this comment?
+                        </div>
+                        <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                        <button type="button" class="btn btn-primary" onClick="deleteComment({{ comment.id }})">Save changes</button>
+                        </div>
+                    </div>
+                    </div>
+                </div>
+                <!-- Modal delete comment - end -->
+
+                <!-- Modal edit comment - start -->
+                <div class="modal fade" id="editCommentModal{{ comment.id }}" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+                    <div class="modal-dialog" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                        <h5 class="modal-title" id="exampleModalLabel">Edit comment</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                        </div>
+                        <form method="POST">
+                            <div class="modal-body">
+                                
+                                    <input type="text" name="post_type" value="editcomment" style="display: none;"/>
+                                    <input type="text" name="comment_id" value="{{ comment.id }}" style="display: none;"/>
+                                    <input type="text" name="comment" value="{{ comment.data }}"/>
+
+                            </div>
+                            <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                            <button type="submit" class="btn btn-primary">Save changes</button>
+                        </form>
+                        </div>
+                    </div>
+                    </div>
+                </div>
+                <!-- Modal edit comment - end -->
+            {% endif %}
+        {% endfor %}
+        <!-- Modal for comments - end -->
+
+        <!-- Modal delete post - start -->
+        <div class="modal fade" id="deletePostModal{{ posting.id }}" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+            <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                <h5 class="modal-title" id="exampleModalLabel">Confirmation</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+                </div>
+                <div class="modal-body">
+                    Are you sure want to delete this post?
+                </div>
+                <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onClick="deletePosting({{ posting.id }})">Save changes</button>
+                </div>
+            </div>
+            </div>
+        </div>
+        <!-- Modal delete post - end -->
+
+        <!-- Modal edit post - start -->
+        <div class="modal fade" id="editPostModal{{ posting.id }}" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+            <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                <h5 class="modal-title" id="exampleModalLabel">Edit post</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+                </div>
+                <form method="POST" enctype="multipart/form-data">
+                    <div class="modal-body">
+                        
+                            <input type="text" name="post_type" value="editpost" style="display: none;"/>
+                            <input type="text" name="posting_id" value="{{ posting.id }}" style="display: none;"/>
+                            <input type="text" name="posting" value="{{ posting.data }}"/>
+                            <br/><br/>
+                            <input type="file" name="image" value="{{ posting.image }}" accept="image/*"/>
+
+                    </div>
+                    <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Save changes</button>
+                </form>
+                </div>
+            </div>
+            </div>
+        </div>
+        <!-- Modal edit post - end -->
     
     {% endfor %}
 </ul>
 <div style="background-color: azure;border: 1px solid black;border-radius: 20px;padding: 30px;">
     <form method="POST" enctype="multipart/form-data">
+        <input type="text" name="post_type" value="addpost" style="display: none;"/>
         <h2 align="center">Add your post!!</h2>
         <textarea name="posting" id="posting" class="form-control"></textarea>
         <br />

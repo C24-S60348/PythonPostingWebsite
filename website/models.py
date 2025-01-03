@@ -16,6 +16,7 @@ class Posting(db.Model):
     date = db.Column(db.DateTime(timezone=True), default=func.now())
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     comments = db.relationship('Comment')
+    edited = db.Column(db.Boolean)
 
 class Comment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -23,4 +24,5 @@ class Comment(db.Model):
     date = db.Column(db.DateTime(timezone=True), default=func.now())
     posting_id = db.Column(db.Integer, db.ForeignKey('posting.id'))
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    edited = db.Column(db.Boolean)
 
